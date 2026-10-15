@@ -8,6 +8,8 @@
     "api/**/*.py": { "maxDuration": 60 }
   },
   "rewrites": [
+    { "source": "/api", "destination": "/api/index" },
+    { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

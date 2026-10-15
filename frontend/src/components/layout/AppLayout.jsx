@@ -15,7 +15,7 @@ export function AppLayout({ children, health, docCount, documents = [], onNewCha
   const [search, setSearch] = useState('')
   const location = useLocation()
   const navigate = useNavigate()
-  const filteredDocs = useMemo(() => documents.filter((doc) => doc.filename.toLowerCase().includes(search.toLowerCase())), [documents, search])
+  const filteredDocs = useMemo(() => (Array.isArray(documents) ? documents : []).filter((doc) => doc?.filename?.toLowerCase().includes(search.toLowerCase())), [documents, search])
 
   useEffect(() => {
     const mobile = window.matchMedia('(max-width: 860px)')

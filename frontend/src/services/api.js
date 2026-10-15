@@ -46,6 +46,7 @@ export async function getHealth() {
 export async function listDocuments() {
   try {
     const { data } = await api.get('/api/documents')
+    if (!Array.isArray(data)) throw new Error('The API did not return a document list. Check the Vercel API route.')
     return data
   } catch (err) {
     throw new Error(friendlyError(err))
