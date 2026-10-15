@@ -45,8 +45,8 @@ GitHub authentication if it is not already configured.
 
 The root `render.yaml` is a Render Blueprint for the FastAPI service. In
 Render, choose **New + → Blueprint**, connect this GitHub repository, and
-select that file. The service uses the `backend` directory, the `standard`
-2 GB plan, and the command `uvicorn main:app --host 0.0.0.0 --port $PORT`.
+select that file. The service uses the `backend` directory, the free plan,
+and the command `uvicorn main:app --host 0.0.0.0 --port $PORT`.
 
 When Render prompts for `OPENROUTER_API_KEY`, enter your real OpenRouter key.
 The model is set to `openai/gpt-4o-mini`. After the service is created, copy its
@@ -57,10 +57,12 @@ production Vercel origin, such as `https://your-app.vercel.app` (no trailing
 slash). If you use a Vercel preview URL, add that origin as well, comma
 separated. Then redeploy the backend.
 
-Use this service for a working demo. Uploaded PDFs and their vector index are
-held in process memory by this app, so re-upload documents after a backend
-restart or redeploy. A Render disk alone would not preserve this in-memory
-index; persistence needs an application storage change.
+The Render free web service has limited memory and sleeps after inactivity.
+This app loads an embedding model at startup, so free-tier startup can fail if
+it exceeds available memory. Treat this as a demo deployment. Uploaded PDFs
+and their vector index are held in process memory, so re-upload documents after
+a restart, sleep, or redeploy. A Render disk alone would not preserve this
+in-memory index; persistence needs an application storage change.
 
 Finally, set `VITE_API_URL` to the Render service URL in Vercel and redeploy
 the frontend. Vite embeds that variable during the build.
