@@ -1,0 +1,38 @@
+/* Markdown rendering: GFM tables, code, quotes, lists. Theme-aware. */
+.md { font-size: 14px; line-height: 1.65; word-break: break-word; overflow-wrap: anywhere; }
+.md > *:first-child { margin-top: 0; }
+.md > *:last-child { margin-bottom: 0; }
+.md p { margin: 0 0 10px; }
+.md h1, .md h2, .md h3, .md h4 { margin: 18px 0 8px; font-weight: 700; line-height: 1.35; }
+.md h1 { font-size: 19px; }
+.md h2 { font-size: 17px; }
+.md h3 { font-size: 15px; }
+.md h4 { font-size: 14px; }
+.md ul, .md ol { margin: 0 0 10px; padding-left: 22px; }
+.md li { margin: 3px 0; }
+.md li::marker { color: var(--text-muted); }
+.md a { color: var(--accent-text); text-decoration: none; }
+.md a:hover { text-decoration: underline; }
+.md blockquote { margin: 0 0 10px; padding: 6px 12px; color: var(--text-secondary); border-left: 3px solid var(--border-strong); }
+.md hr { border: none; border-top: var(--border-thin); margin: 14px 0; }
+.md code:not(pre code) {
+  font-family: var(--font-mono); font-size: 12.5px;
+  background: var(--code-bg); border: var(--border-thin);
+  border-radius: var(--radius-sm); padding: 1px 5px;
+}
+.md pre { margin: 0; background: var(--code-bg); border: var(--border-thin); border-radius: var(--radius-md); overflow: auto; max-width: 100%; }
+.md pre code { display: block; padding: 12px 14px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; background: none; border: none; }
+.codeblock { position: relative; margin: 0 0 10px; }
+.codeblock .md-pre-pad { padding-top: 34px; }
+.codeblock-bar {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 1;
+  display: flex; align-items: center; padding: 5px 8px 5px 12px;
+  font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);
+  border-bottom: var(--border-thin);
+}
+.codeblock-bar button { margin-left: auto; }
+.table-wrap { overflow-x: auto; max-width: 100%; margin: 0 0 10px; border: var(--border-thin); border-radius: var(--radius-md); }
+.md table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 0; }
+.md th, .md td { border: var(--border-thin); padding: 7px 10px; text-align: left; }
+.md th { background: var(--panel); font-weight: 650; }
+.md tr:nth-child(even) td { background: var(--panel); }

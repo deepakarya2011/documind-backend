@@ -1,0 +1,41 @@
+/* Design tokens — single source of truth for the dark liquid-glass app. */
+:root {
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+
+  --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px;
+  --border-thin: 1px solid var(--border);
+
+  --accent: #54e5df;
+  --accent-hover: #37c9c5;
+  --accent-soft: rgba(84, 229, 223, 0.10);
+  --accent-text: #72e9e2;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --transition: 150ms ease;
+}
+
+/* Dark (default) */
+:root, [data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #17191e;
+  --bg-raised: #20232b;
+  --panel: #23262e;
+  --panel-hover: #2a2e37;
+  --border: rgba(255,255,255,0.09);
+  --border-strong: rgba(255,255,255,0.16);
+  --text: #f1f3f5;
+  --text-secondary: #a4a9b2;
+  --text-muted: #777e89;
+  --input-bg: #22252c;
+  --code-bg: #191c22;
+  --accent-text: #72e9e2;
+  --success: #4caf7d; --success-bg: rgba(76, 175, 125, 0.12);
+  --danger: #e06565; --danger-bg: rgba(224, 101, 101, 0.12);
+  --warning: #e0a44a; --warning-bg: rgba(224, 164, 74, 0.12);
+}
+
