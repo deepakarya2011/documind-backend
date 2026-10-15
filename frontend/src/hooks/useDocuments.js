@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { listDocuments, uploadDocuments, deleteDocument } from '../services/api.js'
 
-export default function useDocuments(push) {
+export default function useDocuments(push, viewer) {
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -26,6 +26,12 @@ export default function useDocuments(push) {
     setProgress(0)
     try {
       const { uploaded, failed } = await uploadDocuments(files, setProgress)
+      // Map each uploaded document ID to the browser-local File object so the
+      // PDF viewer can render the original file without a server fetch.
+      uploaded?.forEach((doc) => {
+        const file = files.find((f) => f.name === doc.filename)
+        if (file) viewer?.registerFile(doc.id, file)
+      })
       await refresh()
       if (uploaded?.length)
         push?.(`Indexed: ${uploaded.map((d) => d.filename).join(', ')}`, 'success')
@@ -36,12 +42,13 @@ export default function useDocuments(push) {
       setUploading(false)
       setProgress(0)
     }
-  }, [uploading, refresh, push])
+  }, [uploading, refresh, push, viewer])
 
   const remove = useCallback(async (doc) => {
     setRemovingId(doc.id)
     try {
       await deleteDocument(doc.id)
+      viewer?.releaseFiles([doc.id]) // free the object URL of the removed doc
       await refresh()
       push?.(`Removed ${doc.filename}`, 'success')
     } catch (err) {
@@ -49,7 +56,7 @@ export default function useDocuments(push) {
     } finally {
       setRemovingId(null)
     }
-  }, [refresh, push])
+  }, [refresh, push, viewer])
 
   return { documents, loading, uploading, progress, removingId, refresh, upload, remove }
 }

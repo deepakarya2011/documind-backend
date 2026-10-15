@@ -72,6 +72,8 @@ export default function ChatPage({ chat, docCount, backendDown, apiUrl, document
       push('That document is no longer uploaded, so the page cannot be shown.', 'error')
       return
     }
+    // The viewer renders the local File object; if that selection was lost
+    // (page refresh), it shows a re-upload message instead of a broken PDF.
     viewer.openDocument(docId, hit.page || 1)
   }
 
@@ -122,8 +124,8 @@ export default function ChatPage({ chat, docCount, backendDown, apiUrl, document
       <aside className="viewer-pane">
         {viewer.activeDoc ? (
           <PdfViewerPanel
-            docId={viewer.activeDoc.id}
-            filename={viewer.activeDoc.filename}
+            fileUrl={viewer.activeDoc.fileUrl}
+            filename={(documents || []).find((d) => d.id === viewer.activeDocId)?.filename || viewer.activeDocId}
             page={viewer.page}
             onPageChange={viewer.setPage}
             highlight={viewer.highlight}
@@ -137,7 +139,7 @@ export default function ChatPage({ chat, docCount, backendDown, apiUrl, document
             {documents?.length > 0 && (
               <div className="viewer-doc-picker">
                 {documents.map((d) => (
-                  <button key={d.id} onClick={() => viewer.openDocument(d.id, 1)}>
+                  <button key={d.id} onClick={() => viewer.openDocument(d.id, 1)} title={viewer.fileUrls[d.id] ? 'Open in viewer' : 'Preview needs re-upload in this session'}>
                     <FileText size={14} /> {d.filename}
                   </button>
                 ))}

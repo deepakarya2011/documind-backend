@@ -21,9 +21,9 @@ const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? window.l
 
 function Shell() {
   const { push } = useToast()
+  const viewer = usePdfViewer()
+  const docs = useDocuments(push, viewer)
   const chat = useChat()
-  const docs = useDocuments(push)
-  const viewer = usePdfViewer(docs.documents)
   const [health, setHealth] = useState(null)
 
   useEffect(() => {

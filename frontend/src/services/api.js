@@ -82,14 +82,6 @@ export async function deleteDocument(id) {
   }
 }
 
-// URL for the raw PDF of a document (react-pdf loads this directly).
-// Relative on purpose: the configured api.baseURL applies to XHR only,
-// while <Document file={...}> fetches its own URL and needs the origin too.
-export function documentFileUrl(documentId) {
-  const base = api.getUri()
-  return `${base.replace(/\/+$/, '')}/api/documents/${encodeURIComponent(documentId)}/file`
-}
-
 export async function sendChat(question, history) {
   try {
     const { data } = await api.post('/api/chat', { question, history })

@@ -6,9 +6,8 @@ import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import {
   ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2,
-  X, FileText, Loader2, Lock, TriangleAlert,
+  X, FileText, Loader2, Lock, TriangleAlert, UploadCloud,
 } from 'lucide-react'
-import { documentFileUrl } from '../../services/api.js'
 
 // Worker must match the installed react-pdf/pdfjs version — resolved from
 // the package so builds never drift. Vite bundles it as a module worker.
@@ -25,7 +24,7 @@ function isPasswordError(err) {
   return /password/i.test(String(err?.message || '')) || err?.name === 'PasswordException'
 }
 
-function PdfViewerPanel({ docId, filename, page, onPageChange, highlight, onClose }) {
+function PdfViewerPanel({ fileUrl, filename, page, onPageChange, highlight, onClose }) {
   const [numPages, setNumPages] = useState(0)
   const [zoomIndex, setZoomIndex] = useState(DEFAULT_ZOOM_INDEX)
   const [fitWidth, setFitWidth] = useState(true)
@@ -34,7 +33,9 @@ function PdfViewerPanel({ docId, filename, page, onPageChange, highlight, onClos
   const scrollRef = useRef(null)
   const pageRefs = useRef({})
 
-  const url = useMemo(() => (docId ? documentFileUrl(docId) : null), [docId])
+  // fileUrl is a browser-local object URL (URL.createObjectURL) of the File
+  // the user selected — rendered offline, nothing is fetched from the server.
+  const url = fileUrl || null
   const zoom = ZOOM_STEPS[zoomIndex]
 
   // Track available width for fit-to-width rendering.
@@ -46,7 +47,7 @@ function PdfViewerPanel({ docId, filename, page, onPageChange, highlight, onClos
     const ro = new ResizeObserver(update)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [docId])
+  }, [fileUrl])
 
   const renderedWidth = useMemo(() => {
     if (fitWidth && panelWidth > MAX_WIDTH_PADDING) {
@@ -62,7 +63,7 @@ function PdfViewerPanel({ docId, filename, page, onPageChange, highlight, onClos
     setZoomIndex(DEFAULT_ZOOM_INDEX)
     setFitWidth(true)
     if (scrollRef.current) scrollRef.current.scrollTop = 0
-  }, [docId])
+  }, [fileUrl])
 
   const clampPage = useCallback(
     (next) => Math.min(Math.max(1, next), numPages || 1),
@@ -122,7 +123,21 @@ function PdfViewerPanel({ docId, filename, page, onPageChange, highlight, onClos
     setNumPages(0)
   }, [])
 
-  if (!docId) return null
+  if (!url) {
+    // The browser File object is gone (page refreshed / new session).
+    return (
+      <div className="viewer-empty">
+        <UploadCloud size={28} />
+        <h3>PDF preview unavailable</h3>
+        <p>
+          The viewer shows the file you picked in this browser session, and that
+          selection was lost when the page was reloaded. Please upload
+          “{filename || 'the PDF'}” again from the Documents page — chat history
+          and AI answers are not affected.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="pdf-viewer" role="complementary" aria-label="PDF viewer">
