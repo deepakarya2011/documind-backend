@@ -1,0 +1,6 @@
+# Additional dependencies for the local Streamlit/Chroma/MiniLM application.
+-r requirements.txt
+streamlit>=1.40.0
+chromadb>=1.0.0
+sentence-transformers>=6.0.0
+uvicorn>=0.30.0

@@ -16,7 +16,7 @@ import './styles/global.css'
 import './styles/components.css'
 import './styles/markdown.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? window.location.origin : 'http://127.0.0.1:8000')
 
 function Shell() {
   const { push } = useToast()

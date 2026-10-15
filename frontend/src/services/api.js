@@ -2,9 +2,23 @@
 // Base URL is configurable: set VITE_API_URL in frontend/.env, else port 8000.
 import axios from 'axios'
 
+const SESSION_KEY = 'documind.session.v1'
+function sessionId() {
+  let id = localStorage.getItem(SESSION_KEY)
+  if (!id) {
+    id = crypto.randomUUID()
+    localStorage.setItem(SESSION_KEY, id)
+  }
+  return id
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000',
+  baseURL: import.meta.env.VITE_API_URL || (import.meta.env.PROD ? window.location.origin : 'http://127.0.0.1:8000'),
   timeout: 120000, // embeddings + OpenRouter can take a while on first run
+})
+api.interceptors.request.use((config) => {
+  config.headers['X-Session-ID'] = sessionId()
+  return config
 })
 
 function friendlyError(err) {
@@ -39,6 +53,8 @@ export async function listDocuments() {
 }
 
 export async function uploadDocuments(fileList, onProgress) {
+  const tooLarge = [...fileList].find((file) => file.size > 4 * 1024 * 1024)
+  if (tooLarge) throw new Error(`${tooLarge.name} exceeds Vercel's 4 MB PDF upload limit.`)
   const form = new FormData()
   for (const f of fileList) form.append('files', f)
   try {

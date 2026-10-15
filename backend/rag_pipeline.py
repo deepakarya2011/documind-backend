@@ -24,12 +24,13 @@ import os
 import json
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 import openai
 from openai import OpenAI
 
-from vector_store import VectorStore
+if TYPE_CHECKING:
+    from vector_store import VectorStore
 
 # --- Exact refusal sentence (requirement) -----------------------------------
 NOT_FOUND_MESSAGE = (
