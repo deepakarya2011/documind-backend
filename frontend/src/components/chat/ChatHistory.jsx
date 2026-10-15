@@ -38,7 +38,7 @@ function AIQuestionSuggestions({ items, loading, error, disabled, onSelect, onRe
   )
 }
 
-export default function ChatHistory({ messages, sending, hasDocs, onSuggest, onRetry, welcomeComposer, aiSuggestions, suggestionsLoading, suggestionsError, onRefreshSuggestions }) {
+export default function ChatHistory({ messages, sending, hasDocs, onSuggest, onRetry, welcomeComposer, aiSuggestions, suggestionsLoading, suggestionsError, onRefreshSuggestions, documents, onCitationClick }) {
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export default function ChatHistory({ messages, sending, hasDocs, onSuggest, onR
           </div>
         )}
         {messages.map((m) => (
-          <ChatMessage key={m.id || `${m.ts}-${m.role}`} message={m} onRetry={onRetry} retrying={sending} />
+          <ChatMessage key={m.id || `${m.ts}-${m.role}`} message={m} onRetry={onRetry} retrying={sending} documents={documents} onCitationClick={onCitationClick} />
         ))}
         {messages.length > 0 && !sending && (
           <AIQuestionSuggestions

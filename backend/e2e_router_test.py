@@ -49,6 +49,9 @@ DOC_1_BYTES = (
 # Capture the same HTTP request the WSGI app sends to OpenRouter.
 captured = {'model': None, 'messages': None}
 
+# Doc id registered by test_upload_pdf(); later tests read/delete it.
+UPLOADED_DOC_ID = None
+
 
 def make_fake_response(content):
     class _FakeMessage:
@@ -65,8 +68,26 @@ def make_fake_response(content):
 
 
 class _FakeChatCompletions:
+    """Stands in for the OpenAI client class that ``rag_pipeline`` imports.
+
+    ``create_client()`` calls ``OpenAI(...)``, so the instance is callable and
+    exposes the same ``client.chat.completions.create(...)`` surface the real
+    SDK has. ``create`` delegates to the per-case ``side_effect``.
+    """
+
     def __init__(self, side_effect):
         self.side_effect = side_effect
+
+    def __call__(self, **kwargs):
+        return self
+
+    @property
+    def chat(self):
+        return self
+
+    @property
+    def completions(self):
+        return self
 
     def create(self, **kwargs):
         return self.side_effect(kwargs)
@@ -102,15 +123,18 @@ def test_health():
 
 def test_upload_pdf():
     """Upload a valid PDF and confirm processing metadata is recorded."""
+    global UPLOADED_DOC_ID
     client = TestClient(app)
     r = client.post(
         '/api/documents/upload',
         files=[('files', ('budget2000.pdf', DOC_1_BYTES, 'application/pdf'))],
     )
-    assert r.status_code == 200, r.text
+    # FastAPI's UploadResponse contract (README): 201 Created.
+    assert r.status_code == 201, r.text
     body = r.json()
     assert len(body['uploaded']) == 1
     doc = body['uploaded'][0]
+    UPLOADED_DOC_ID = doc['id']
     assert doc['filename'] == 'budget2000.pdf'
     assert doc['pages'] >= 1
     assert doc['chunks'] >= 1
@@ -126,13 +150,40 @@ def test_no_docs_no_api():
     print('PASS /api/chat with no indexed documents -> HTTP 400')
 
 
+def test_document_pages():
+    """Page texts captured at upload must come back 1-based; unknown ids 404."""
+    client = TestClient(app)
+    r = client.get('/api/documents/%s/pages' % UPLOADED_DOC_ID)
+    assert r.status_code == 200, r.text
+    pages = r.json()
+    assert isinstance(pages, list) and len(pages) >= 1, pages
+    assert pages[0]['page_number'] == 1, pages[0]
+    assert 'Budget 2000' in pages[0]['text'], pages[0]
+    r2 = client.get('/api/documents/does-not-exist/pages')
+    assert r2.status_code == 404, r2.text
+    print('PASS /api/documents/{id}/pages (%d page(s), page 1 has text, 404 unknown)'
+          % len(pages))
+
+
 def test_delete_document():
     client = TestClient(app)
-    r = client.delete('/api/documents/budget2000.pdf__budget2000.pdf')
+    r = client.delete('/api/documents/%s' % UPLOADED_DOC_ID)
     assert r.status_code == 200, r.text
-    r2 = client.delete('/api/documents/does-not-exist')
+    # The stored page texts must disappear together with the document.
+    r2 = client.get('/api/documents/%s/pages' % UPLOADED_DOC_ID)
     assert r2.status_code == 404, r2.text
-    print('PASS /api/documents/delete (200 ok, 404 unknown)')
+    r3 = client.delete('/api/documents/does-not-exist')
+    assert r3.status_code == 404, r3.text
+    print('PASS /api/documents/delete (200 ok, pages 404 after delete, 404 unknown)')
+
+
+def test_clear_history():
+    """Symmetry endpoint the React Clear button calls alongside DELETE /api/documents."""
+    client = TestClient(app)
+    r = client.delete('/api/chat/history')
+    assert r.status_code == 200, r.text
+    assert r.json() == {'status': 'cleared'}, r.text
+    print('PASS /api/chat/history (200 cleared)')
 
 
 # --- Mocked OpenRouter failure cases ---------------------------------------------
@@ -190,7 +241,10 @@ def main():
         test_health()
         test_no_docs_no_api()
         test_upload_pdf()
+        test_document_pages()
         test_openrouter_error_mapping(mock)
+        test_delete_document()
+        test_clear_history()
         print('\nALL END-TO-END TESTS PASSED')
 if __name__ == '__main__':
     main()

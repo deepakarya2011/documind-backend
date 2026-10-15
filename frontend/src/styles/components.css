@@ -700,3 +700,229 @@
   .doc-row { flex-wrap: wrap; }
   .kv { grid-template-columns: 1fr; }
 }
+
+/* --- PDF viewer split layout + panel (DocuMind dark theme) --- */
+.chat-split {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+.chat-split.viewer-open { gap: 1px; background: var(--border); }
+.chat-split .chat-pane,
+.chat-split > .chat-wrap:not(.viewer-pane) {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+.chat-split.viewer-open .chat-pane { flex: 0 50%; max-width: 50%; }
+.viewer-pane {
+  flex: 0 0 50%;
+  max-width: 50%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  background: var(--bg);
+}
+
+.viewer-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius-md);
+  border: var(--border-thin);
+  background: var(--panel);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.viewer-toggle:hover:not(:disabled) { background: var(--panel-hover); color: var(--accent-text); border-color: var(--border-strong); }
+.viewer-toggle:disabled { opacity: 0.45; cursor: not-allowed; }
+.viewer-toggle.open { color: var(--accent-text); border-color: var(--border-strong); }
+
+.pdf-viewer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg);
+}
+.pdf-viewer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: var(--border-thin);
+  background: var(--bg-raised);
+  flex-wrap: wrap;
+}
+.pdf-viewer-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+}
+.pdf-viewer-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+}
+.pdf-viewer-title svg { color: var(--accent); flex: none; }
+.pdf-viewer-controls { display: inline-flex; align-items: center; gap: 2px; }
+.pdf-page-indicator {
+  min-width: 56px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.pdf-controls-sep { width: 1px; height: 18px; background: var(--border); margin: 0 6px; }
+.icon-btn.active { color: var(--accent-text); }
+
+.pdf-viewer-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  scroll-behavior: smooth;
+}
+.pdf-viewer-scroll .react-pdf__Document { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.pdf-page-wrap {
+  border: var(--border-thin);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #fff;
+  box-shadow: var(--shadow-md);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.pdf-page-wrap.current { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft), var(--shadow-md); }
+.pdf-page-loading {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 240px; min-width: 320px; color: var(--text-muted);
+  background: var(--panel);
+}
+.pdf-page-number {
+  background: var(--bg-raised);
+  border-top: var(--border-thin);
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-align: center;
+  padding: 4px 0;
+  font-variant-numeric: tabular-nums;
+}
+.pdf-highlight { background: rgba(84, 229, 223, 0.4); color: inherit; border-radius: 2px; padding: 0 2px; }
+
+.pdf-viewer-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 16px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.pdf-viewer-status.error { color: var(--danger); }
+.pdf-viewer-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(224, 101, 101, 0.35);
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 12px;
+}
+.pdf-viewer-banner svg { flex: none; }
+.spin { animation: pdf-spin 1s linear infinite; }
+@keyframes pdf-spin { to { transform: rotate(360deg); } }
+
+.viewer-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--text-muted);
+  padding: 24px;
+}
+.viewer-empty svg { color: var(--accent); opacity: 0.8; }
+.viewer-empty h3 { color: var(--text); font-size: 15px; margin: 4px 0 0; }
+.viewer-empty p { font-size: 13px; max-width: 320px; line-height: 1.5; }
+.viewer-doc-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  width: min(280px, 100%);
+}
+.viewer-doc-picker button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: var(--border-thin);
+  background: var(--panel);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.viewer-doc-picker button:hover { background: var(--panel-hover); color: var(--accent-text); border-color: var(--border-strong); }
+
+/* Clickable citation chips inside markdown + source chips */
+.cite-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: baseline;
+  margin: 0 2px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(84, 229, 223, 0.4);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.cite-chip:hover { background: rgba(84, 229, 223, 0.2); border-color: var(--accent); }
+.cite-chip.demo { cursor: default; }
+button.source-chip { cursor: pointer; font-family: inherit; }
+button.source-chip:hover { border-color: var(--accent); color: var(--accent-text); }
+
+/* Responsive: viewer stacks below chat on narrow screens */
+@media (max-width: 1024px) {
+  .chat-split.viewer-open { flex-direction: column; }
+  .chat-split.viewer-open .chat-pane,
+  .viewer-pane { flex: 1 1 auto; max-width: 100%; }
+  .viewer-pane { min-height: 60vh; border-top: var(--border-thin); }
+}
+@media (max-width: 640px) {
+  .viewer-toggle-label { display: none; }
+  .viewer-toggle { padding: 7px; }
+  .pdf-viewer-title span { max-width: 90px; }
+  .pdf-viewer-scroll { padding: 8px; }
+}

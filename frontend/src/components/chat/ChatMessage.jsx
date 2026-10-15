@@ -5,7 +5,7 @@ import MarkdownRenderer from './MarkdownRenderer.jsx'
 import SourceCitation from './SourceCitation.jsx'
 import Tooltip from '../common/Tooltip.jsx'
 
-function ChatMessage({ message, onRetry, retrying }) {
+function ChatMessage({ message, onRetry, retrying, documents, onCitationClick }) {
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
 
@@ -29,6 +29,8 @@ function ChatMessage({ message, onRetry, retrying }) {
     )
   }
 
+  const handleCitation = (hit) => onCitationClick?.(hit)
+
   return (
     <div className="msg">
       <div className="msg-avatar"><Bot size={15} /></div>
@@ -37,9 +39,9 @@ function ChatMessage({ message, onRetry, retrying }) {
         {message.error ? (
           <div className="msg-error">{message.content}</div>
         ) : (
-          <MarkdownRenderer content={message.content} />
+          <MarkdownRenderer content={message.content} documents={documents} onCitationClick={handleCitation} />
         )}
-        {!message.error && <SourceCitation sources={message.sources} />}
+        {!message.error && <SourceCitation sources={message.sources} onCitationClick={handleCitation} />}
         <div className="msg-actions">
           {!message.error && (
             <Tooltip label={copied ? 'Copied' : 'Copy answer'}>

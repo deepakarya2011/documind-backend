@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import sys
 import os
+import re
 import time
 import uuid
 from pathlib import Path
@@ -23,7 +24,7 @@ from threading import Lock
 from typing import Dict, List
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -60,6 +61,8 @@ _store = VectorStore()
 _store_lock = Lock()
 _started_at = time.time()
 documents: Dict[str, Dict] = {}
+
+
 class HealthResponse(BaseModel):
     status: str = "ok"
     model: str
@@ -126,6 +129,8 @@ def _safe_history(history: List[Dict[str, str]]) -> List[Dict[str, str]]:
         and str(m.get("content", "")).strip()
     ]
     return clean[-6:]
+
+
 @app.get("/api/health", response_model=HealthResponse)
 def health():
     try:
@@ -155,7 +160,10 @@ async def upload_documents(files: List[UploadFile] = File(...)):
             if len(raw) > 50 * 1024 * 1024:
                 raise PDFProcessingError(f'"{filename}" exceeds 50 MB limit.')
             doc_id = uuid.uuid4().hex[:12]
-            stored_name = f"{doc_id}__{filename}"
+            # Never trust client paths: keep only the base name so stored_name
+            # can never contain path separators (defence against traversal).
+            safe_base = Path(filename).name or "unnamed.pdf"
+            stored_name = f"{doc_id}__{safe_base}"
             pdf, chunks = process_pdf(filename, raw)
             renamed = [TextChunk(text=c.text, source=stored_name,
                                  page=c.page, chunk_index=c.chunk_index)
@@ -165,7 +173,11 @@ async def upload_documents(files: List[UploadFile] = File(...)):
                 documents[doc_id] = {"id": doc_id, "filename": filename,
                                      "stored_name": stored_name,
                                      "pages": pdf.page_count, "chunks": len(renamed),
-                                     "characters": pdf.total_characters}
+                                     "characters": pdf.total_characters,
+                                     "file_bytes": raw,
+                                     "page_texts": [{"page_number": p.number,
+                                                     "text": p.text}
+                                                    for p in pdf.pages]}
             uploaded.append(DocumentInfo(id=doc_id, filename=filename,
                                           pages=pdf.page_count, chunks=len(renamed),
                                           characters=pdf.total_characters))
@@ -282,7 +294,79 @@ def chat_suggestions(req: SuggestionsRequest):
         raise HTTPException(status_code=502, detail=msg)
 
 
-@app.delete("/api/chat/history", status_code=200)
+_RANGE_RE = re.compile(r"bytes=(\d*)-(\d*)$")
+
+
+def _filename_from_stored(stored_name: str) -> str:
+    base = stored_name.split("__", 1)[-1]
+    return re.sub(r"[^A-Za-z0-9._ -]", "_", base) or "document.pdf"
+
+
+@app.get("/api/documents/{document_id}/file")
+def document_file(document_id: str, request: Request):
+    """Stream the originally uploaded PDF back to the browser so the
+    react-pdf viewer can render the exact pages cited in chat answers.
+
+    Only documents uploaded to THIS process are served, keyed by their
+    generated document ID — there is no filesystem path input anywhere in
+    this endpoint, so path traversal is impossible by construction.
+    Supports single-range HTTP Range requests for incremental rendering.
+    """
+    with _store_lock:
+        doc = documents.get(document_id)
+        data = doc.get("file_bytes") if doc else None
+        if not data:
+            raise HTTPException(status_code=404, detail="Document file not found.")
+
+    total = len(data)
+    download_name = _filename_from_stored(doc["stored_name"])
+    base_headers = {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": f'inline; filename="{download_name}"',
+        "Accept-Ranges": "bytes",
+        "Cache-Control": "no-store",
+    }
+
+    range_header = request.headers.get("range", "")
+    match = _RANGE_RE.match(range_header)
+    if match:
+        start_s, end_s = match.group(1), match.group(2)
+        start = int(start_s) if start_s else 0
+        end = int(end_s) if end_s else total - 1
+        # RFC 9110: invalid or unsatisfiable ranges get 416.
+        if start >= total or end < start:
+            raise HTTPException(status_code=416, detail="Requested range not satisfiable.")
+        end = min(end, total - 1)
+        chunk = data[start:end + 1]
+        headers = {**base_headers, "Content-Range": f"bytes {start}-{end}/{total}"}
+        return Response(content=chunk, status_code=206, headers=headers)
+
+    return Response(content=data, status_code=200,
+                    headers={**base_headers, "Content-Length": str(total)})
+
+
+@app.get("/api/documents/{document_id}/pages", response_model=List[Dict[str, object]])
+def document_pages(document_id: str):
+    """Return the stored text of every page of one document, keyed by the
+    exact 1-based page number.
+
+    The page number is the single source of truth for citations: the PDF
+    processor stores ``page`` on every chunk, ChromaDB keeps it in metadata,
+    the search result carries it back, and the RAG result surfaces it in
+    ``SourceCitation``. The viewer uses ``page_number`` to jump straight to
+    the cited page.
+    """
+    with _store_lock:
+        doc = documents.get(document_id)
+        if doc is None:
+            raise HTTPException(status_code=404, detail="Document not found.")
+
+        # Stable list ordered by the 1-based page number so the viewer can
+        # render page N directly from its index.
+        return doc.get("page_texts", [])
+
+
+@app.delete("/api/chat/history")
 def clear_history():
     """History lives in React state; endpoint kept for API symmetry."""
     return {"status": "cleared"}

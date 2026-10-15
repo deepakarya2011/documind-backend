@@ -103,6 +103,7 @@ default is `http://127.0.0.1:8000`. Backend CORS allows only local Vite.
 | GET | `/api/health` | 200 `{status, model, documents, chunks, uptime_seconds, cuda_available, api_key_configured}` | — |
 | POST | `/api/documents/upload` (form field `files`, ≥1 PDF) | 201 `{uploaded: [{id, filename, pages, chunks, characters}], failed: []}` (partial success also 201) | 400 no files · 422 all failed |
 | GET | `/api/documents` | 200 `[{id, filename, pages, chunks, characters}]` | — |
+| GET | `/api/documents/{document_id}/pages` | 200 `[{page_number, text}]` (page text stored at upload, 1-based) | 404 unknown id |
 | DELETE | `/api/documents/{document_id}` (removes its chunks only) | 200 `{status: deleted, id}` | 404 unknown id |
 | POST | `/api/chat` `{question, history?}` (≤6 prior turns) | 200 `{answer, sources: [{filename, page, score}], found}` | 400 empty/no docs · 401 bad key · 402 no credits · 403 denied · 404 unknown model · 429 rate limit · 502 unreachable |
 | DELETE | `/api/chat/history` (history lives in React; symmetry endpoint) | 200 `{status: cleared}` | — |

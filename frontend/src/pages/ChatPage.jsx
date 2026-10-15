@@ -1,12 +1,15 @@
-// Chat page: conversation + anchored composer + offline banner.
+// Chat page: two-column layout — conversation left, PDF viewer right.
+// The viewer toggles open/closed; chat + document state are preserved.
 import { useToast } from '../components/common/Toast.jsx'
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
+import { BookOpen, FileText } from 'lucide-react'
 import ChatHistory from '../components/chat/ChatHistory.jsx'
 import ChatInput from '../components/chat/ChatInput.jsx'
+import PdfViewerPanel from '../components/pdf/PdfViewerPanel.jsx'
 import { getChatSuggestions } from '../services/api.js'
 
-export default function ChatPage({ chat, docCount, backendDown, apiUrl }) {
+export default function ChatPage({ chat, docCount, backendDown, apiUrl, documents, viewer }) {
   const { push } = useToast()
   const navigate = useNavigate()
   const [aiSuggestions, setAiSuggestions] = useState([])
@@ -56,7 +59,23 @@ export default function ChatPage({ chat, docCount, backendDown, apiUrl }) {
 
   const composer = <ChatInput onSend={send} sending={chat.sending} disabled={backendDown} docCount={docCount} />
 
-  return (
+  const handleCitation = (hit) => {
+    // Citation hits may carry a docId (inline [Page N] chips) or only a
+    // filename (source chips). Resolve filename → uploaded document ID.
+    let docId = hit.docId
+    if (!docId && hit.filename) {
+      const match = (documents || []).find((d) => d.filename === hit.filename)
+        || (documents || []).find((d) => hit.filename && d.filename.includes(hit.filename.replace(/\.pdf$/i, '')))
+      docId = match?.id
+    }
+    if (!docId) {
+      push('That document is no longer uploaded, so the page cannot be shown.', 'error')
+      return
+    }
+    viewer.openDocument(docId, hit.page || 1)
+  }
+
+  const chatCol = (
     <div className="chat-wrap">
       {backendDown && (
         <div style={{ background: 'var(--warning-bg)', color: 'var(--warning)', fontSize: 12, padding: '8px 16px', textAlign: 'center' }}>
@@ -74,8 +93,59 @@ export default function ChatPage({ chat, docCount, backendDown, apiUrl }) {
         suggestionsLoading={suggestionsLoading}
         suggestionsError={suggestionsError}
         onRefreshSuggestions={() => setSuggestionRefresh((value) => value + 1)}
+        documents={documents}
+        onCitationClick={handleCitation}
       />
       {chat.messages.length > 0 && <div className="composer-zone">{composer}</div>}
+    </div>
+  )
+
+  if (!viewer.open) {
+    return (
+      <div className="chat-split">
+        <button className="viewer-toggle" onClick={() => documents?.length ? viewer.openDocument(documents[0].id, 1) : push('Upload a PDF first — then the viewer can display it.', 'info')} title={documents?.length ? 'Open PDF viewer' : 'Upload a PDF first'}>
+          <BookOpen size={16} />
+          <span className="viewer-toggle-label">PDF</span>
+        </button>
+        {chatCol}
+      </div>
+    )
+  }
+
+  return (
+    <div className="chat-split viewer-open">
+      <button className="viewer-toggle open" onClick={viewer.close} title="Close PDF viewer">
+        <BookOpen size={16} />
+        <span className="viewer-toggle-label">PDF</span>
+      </button>
+      <div className="chat-pane">{chatCol}</div>
+      <aside className="viewer-pane">
+        {viewer.activeDoc ? (
+          <PdfViewerPanel
+            docId={viewer.activeDoc.id}
+            filename={viewer.activeDoc.filename}
+            page={viewer.page}
+            onPageChange={viewer.setPage}
+            highlight={viewer.highlight}
+            onClose={viewer.close}
+          />
+        ) : (
+          <div className="viewer-empty">
+            <FileText size={28} />
+            <h3>No document open</h3>
+            <p>Click a citation like <span className="cite-chip demo">[Page 5]</span> in an answer, or choose a document below to view it here.</p>
+            {documents?.length > 0 && (
+              <div className="viewer-doc-picker">
+                {documents.map((d) => (
+                  <button key={d.id} onClick={() => viewer.openDocument(d.id, 1)}>
+                    <FileText size={14} /> {d.filename}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </aside>
     </div>
   )
 }

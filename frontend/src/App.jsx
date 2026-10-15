@@ -10,6 +10,7 @@ import SettingsPage, { applyTheme, currentTheme } from './pages/SettingsPage.jsx
 import NotFoundPage from './pages/NotFoundPage.jsx'
 import useChat from './hooks/useChat.js'
 import useDocuments from './hooks/useDocuments.js'
+import usePdfViewer from './hooks/usePdfViewer.js'
 import { getHealth, clearAll } from './services/api.js'
 import './styles/variables.css'
 import './styles/global.css'
@@ -22,6 +23,7 @@ function Shell() {
   const { push } = useToast()
   const chat = useChat()
   const docs = useDocuments(push)
+  const viewer = usePdfViewer(docs.documents)
   const [health, setHealth] = useState(null)
 
   useEffect(() => {
@@ -54,9 +56,9 @@ function Shell() {
       <Routes>
         <Route
           path="/"
-          element={<ChatPage chat={chat} docCount={docs.documents.length} backendDown={backendDown} apiUrl={API_URL} />}
+          element={<ChatPage chat={chat} docCount={docs.documents.length} backendDown={backendDown} apiUrl={API_URL} documents={docs.documents} viewer={viewer} />}
         />
-        <Route path="/chat" element={<ChatPage chat={chat} docCount={docs.documents.length} backendDown={backendDown} apiUrl={API_URL} />} />
+        <Route path="/chat" element={<ChatPage chat={chat} docCount={docs.documents.length} backendDown={backendDown} apiUrl={API_URL} documents={docs.documents} viewer={viewer} />} />
         <Route path="/documents" element={<DocumentsPage docs={docs} />} />
         <Route path="/history" element={<HistoryPage chat={chat} />} />
         <Route
